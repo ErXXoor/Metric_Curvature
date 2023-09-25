@@ -77,7 +77,16 @@ namespace IGLUtils {
         path = path / (m_filename + "_cur.csv");
         std::ofstream out(path.string());
         // vertex id,max,maxcurvature,min,mincurvature,normal
-        auto aaa = std::filesystem::current_path();
+        //csv reader has problem with the first line so no header
+//        std::vector<std::string> col_name = {"vertex", "max_curvature","max_direction_x","max_direction_y","max_direction_z",
+//                                             "min_curvature","min_direction_x","min_direction_y","min_direction_z",
+//                                             "normal_x","normal_y","normal_z"};
+//        for(auto &name:col_name)
+//        {
+//            out<<name<<",";
+//        }
+//        out<<std::endl;
+
         for(int i=0;i<m_v->rows();i++)
         {
             auto max_pd = m_max_pd->row(i);

@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     {
         mesh.CalculateCurvature();
 //    mesh.ViewCurvature();
-        mesh.SaveMeshInfo("../../tmp/");
+//        mesh.SaveMeshInfo("../../tmp/");
     mesh.SaveMetric("../../tmp/");
     }
     else
