@@ -4,24 +4,30 @@
 
 #ifndef METRIC_CURVATURE_MESHIO_H
 #define METRIC_CURVATURE_MESHIO_H
+
 #include <string>
 #include <Eigen/Core>
 #include <memory>
 #include "Base/Metric.h"
+
 namespace IGLUtils {
     class MeshGT {
     public:
         MeshGT();
-        ~MeshGT()=default;
+
+        ~MeshGT() = default;
 
         bool LoadMesh(const std::string &filename);
 
         bool CalculateCurvature();
 
-        void ProcessMetric(unsigned int smooth_ring,unsigned int smooth_iter);
+        void ProcessMetric(unsigned int smooth_ring, unsigned int smooth_iter);
 
         void ViewCurvature();
+
         void ViewMetric();
+
+        void SaveCurvature(const std::string &filepath);
 
         void SaveMetric(const std::string &filepath);
 

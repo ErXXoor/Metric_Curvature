@@ -8,31 +8,30 @@
 #include <filesystem>
 #include <thread>
 #include <chrono>
+
 namespace fs = std::filesystem;
+
 bool RunPipeline(const std::string &filename, const std::string &outpath) {
     auto file_idx = fs::path(filename).parent_path().filename().string();
     IGLUtils::MeshGT mesh;
-    if(!mesh.LoadMesh(filename))
-    {
-        std::cout<<"file_idx: "<<file_idx<<" "<<"load mesh failed"<<std::endl;
+    if (!mesh.LoadMesh(filename)) {
+        std::cout << "file_idx: " << file_idx << " " << "load mesh failed" << std::endl;
         return false;
     }
-    if(!mesh.CalculateCurvature())
-    {
-        std::cout<<"file_idx: "<<file_idx<<" "<<"calculate curvature failed"<<std::endl;
+    if (!mesh.CalculateCurvature()) {
+        std::cout << "file_idx: " << file_idx << " " << "calculate curvature failed" << std::endl;
         return false;
     }
-    try{
-        mesh.ProcessMetric(2,2);
-        mesh.ViewMetric();
-//        mesh.SaveMetric(outpath);
-//        mesh.SaveMeshInfo(outpath);
+    try {
+        mesh.ProcessMetric(2, 2);
+        mesh.SaveMetric(outpath);
+        mesh.SaveMeshInfo(outpath);
     }
-    catch(const std::exception& e){
-        std::cout<<"file_idx: "<<file_idx<<" "<<e.what()<<" "<<"save failed"<<std::endl;
+    catch (const std::exception &e) {
+        std::cout << "file_idx: " << file_idx << " " << e.what() << " " << "save failed" << std::endl;
         return false;
     }
-    std::cout<<"file_idx: "<<file_idx<<" "<<"success"<<std::endl;
+    std::cout << "file_idx: " << file_idx << " " << "success" << std::endl;
     return true;
 }
 
@@ -74,11 +73,11 @@ int main(int argc, char *argv[]) {
 //
 //    }
 
-    auto obj_path = "/home/hongbo/Desktop/code/datasets/kitten_remesh.obj";
-    auto output_path = "/home/hongbo/Desktop/code/Metric_Curvature/tmp";
+    auto obj_path = "../../res/kitten_remesh.obj";
+    auto output_path = "../../tmp";
     RunPipeline(obj_path, output_path);
 
     auto end = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::seconds>(end-start);
-    std::cout<<"final duration: "<<duration.count()<<std::endl;
+    auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+    std::cout << "final duration: " << duration.count() << std::endl;
 }
