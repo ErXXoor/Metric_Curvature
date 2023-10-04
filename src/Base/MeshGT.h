@@ -7,21 +7,21 @@
 #include <string>
 #include <Eigen/Core>
 #include <memory>
-
+#include "Base/Metric.h"
 namespace IGLUtils {
     class MeshGT {
     public:
         MeshGT();
+        ~MeshGT()=default;
 
         bool LoadMesh(const std::string &filename);
 
-        void CalculateCurvature();
+        bool CalculateCurvature();
 
-        void ComposeSRMatVert();
-
-        void ComposeQMatFace();
+        void ProcessMetric(unsigned int smooth_ring,unsigned int smooth_iter);
 
         void ViewCurvature();
+        void ViewMetric();
 
         void SaveMetric(const std::string &filepath);
 
@@ -36,9 +36,7 @@ namespace IGLUtils {
         std::shared_ptr<Eigen::MatrixXd> m_max_pd;
         std::shared_ptr<Eigen::VectorXd> m_max_pv;
         std::shared_ptr<Eigen::VectorXd> m_min_pv;
-        std::vector<Eigen::Matrix3d> m_S_mat;
-        std::vector<Eigen::Matrix3d> m_R_mat;
-        std::vector<Eigen::Matrix3d> m_QF_mat;
+        std::shared_ptr<Metric> m_metric;
     };
 }
 #endif //METRIC_CURVATURE_MESHIO_H

@@ -2,10 +2,11 @@
 // Created by hongbo on 13/09/23.
 //
 
-#include "MeshIO/MeshGT.h"
+#include "Base/MeshGT.h"
 #include <igl/read_triangle_mesh.h>
 #include <igl/principal_curvature.h>
 #include <igl/opengl/glfw/Viewer.h>
+#include<igl/adjacency_list.h>
 #include <ostream>
 #include <filesystem>
 
@@ -16,6 +17,7 @@ namespace IGLUtils {
         m_v = std::make_shared<Eigen::MatrixXd>();
         m_f = std::make_shared<Eigen::MatrixXi>();
         m_n = std::make_shared<Eigen::MatrixXd>();
+        m_metric = std::make_shared<Metric>();
     }
 
     bool MeshGT::LoadMesh(const std::string &filename) {
@@ -26,73 +28,84 @@ namespace IGLUtils {
             return false;
         }
         igl::per_vertex_normals(*m_v, *m_f, *m_n);
+
         return success;
     }
 
-    void MeshGT::CalculateCurvature() {
+    bool MeshGT::CalculateCurvature() {
         m_min_pd = std::make_shared<Eigen::MatrixXd>();
         m_max_pd = std::make_shared<Eigen::MatrixXd>();
         m_max_pv = std::make_shared<Eigen::VectorXd>();
         m_min_pv = std::make_shared<Eigen::VectorXd>();
-        igl::principal_curvature(*m_v, *m_f, *m_max_pd, *m_min_pd, *m_max_pv, *m_min_pv);
+        try{
+            igl::principal_curvature(*m_v, *m_f, *m_max_pd, *m_min_pd, *m_max_pv, *m_min_pv);
+        }
+        catch (const std::exception& e) {
+            // Catch and handle exceptions
+            std::cerr << "An exception occurred: " << e.what() << std::endl;
+            return false;
+        }
+        return true;
     }
 
-    void MeshGT::ComposeSRMatVert() {
-        if (m_min_pd == nullptr || m_max_pd == nullptr) {
-            CalculateCurvature();
-        }
+    void MeshGT::ProcessMetric(unsigned int smooth_ring, unsigned int smooth_iter) {
+        m_metric->ComposeMetric(m_n,
+                                m_min_pd,
+                                m_max_pd,
+                                m_min_pv,
+                                m_max_pv);
 
-        for (int i = 0; i < m_n->rows(); ++i) {
-            Eigen::Matrix3d mat_r;
-            mat_r << m_min_pd->row(i), m_max_pd->row(i), m_n->row(i);
-            m_R_mat.emplace_back(mat_r);
+        std::vector<std::vector<int>> adj;
+        igl::adjacency_list(*m_f, adj);
 
-            Eigen::DiagonalMatrix<double, 3> diag;
-            diag.diagonal() << std::sqrt(abs(m_min_pv->coeff(i))), std::sqrt(abs(m_max_pv->coeff(i))), 0.0;
-            m_S_mat.emplace_back(diag);
-        }
-    }
-
-    void MeshGT::ComposeQMatFace() {
-        if (m_S_mat.empty() || m_R_mat.empty()) {
-            ComposeSRMatVert();
-        }
-        for (auto i = 0; i < m_f->rows(); i++) {
-            auto v_ids = m_f->row(i);
-            Eigen::Matrix3d FS;
-            FS.setZero();
-            for (auto j = 0; j < v_ids.size(); j++) {
-                FS += m_S_mat[v_ids[j]];
+        std::vector<std::set<int>> ring_neighbor;
+        for(auto& i:adj)
+        {
+            std::set<int> ring;
+            for(auto& j : i)
+            {
+                ring.insert(j);
             }
-            FS /= double(v_ids.size());
-            auto FR = m_R_mat[v_ids[0]];
-            auto Q_mat = FS * FR;
-            m_QF_mat.emplace_back(Q_mat);
+            ring_neighbor.emplace_back(ring);
         }
-    }
+        if(smooth_ring>1)
+        {
+            for(auto i=0;i<smooth_ring-1;i++)
+            {
+                std::vector<std::set<int>> new_ring_neighbor;
+                std::copy(ring_neighbor.begin(), ring_neighbor.end(),std::back_inserter(new_ring_neighbor));
+                for(auto set_i=0;set_i<ring_neighbor.size();set_i++)
+                {
+                    for(auto v_id:ring_neighbor[set_i])
+                    {
+                        new_ring_neighbor[set_i].insert(ring_neighbor[v_id].begin(),ring_neighbor[v_id].end());
+                    }
+                }
+                ring_neighbor = new_ring_neighbor;
+            }
+        }
+        else
+        {
+            for(int i=0;i<ring_neighbor.size();i++)
+            {
+                ring_neighbor[i].insert(i);
+            }
 
+        }
+        m_metric->SmoothMetric(smooth_iter,ring_neighbor);
+
+    }
 
     void MeshGT::SaveMetric(const std::string &filepath) {
         std::filesystem::path path(filepath);
         path = path / (m_filename + "_cur.csv");
         std::ofstream out(path.string());
-        // vertex id,max,maxcurvature,min,mincurvature,normal
-        //csv reader has problem with the first line so no header
-//        std::vector<std::string> col_name = {"vertex", "max_curvature","max_direction_x","max_direction_y","max_direction_z",
-//                                             "min_curvature","min_direction_x","min_direction_y","min_direction_z",
-//                                             "normal_x","normal_y","normal_z"};
-//        for(auto &name:col_name)
-//        {
-//            out<<name<<",";
-//        }
-//        out<<std::endl;
 
         for(int i=0;i<m_v->rows();i++)
         {
             auto max_pd = m_max_pd->row(i);
             auto min_pd = m_min_pd->row(i);
             auto normal = m_n->row(i);
-            out<<i<<",";
             out<<m_max_pv->coeff(i)<<",";
             out<<max_pd(0)<<","<<max_pd(1)<<","<<max_pd(2)<<",";
             out<<m_min_pv->coeff(i)<<",";
@@ -145,5 +158,18 @@ namespace IGLUtils {
 
         viewer.launch();
     }
+
+    void MeshGT::ViewMetric()
+    {
+        auto ell_filename = "/home/hongbo/Desktop/code/Metric_Curvature/res/ellipsoid_t.obj";
+        std::shared_ptr<Eigen::MatrixXd> ell_v = std::make_shared<Eigen::MatrixXd>();
+        std::shared_ptr<Eigen::MatrixXi> ell_f = std::make_shared<Eigen::MatrixXi>();
+        igl::read_triangle_mesh(ell_filename, *ell_v, *ell_f);
+
+        igl::opengl::glfw::Viewer viewer;
+        viewer.data().set_mesh(*ell_v,*ell_f);
+        viewer.launch();
+    }
+
 
 }
