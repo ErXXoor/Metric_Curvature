@@ -25,8 +25,6 @@ namespace IGLUtils {
 
         void ViewCurvature();
 
-        void ViewMetric();
-
         void SaveCurvature(const std::string &filepath);
 
         void SaveMetric(const std::string &filepath);

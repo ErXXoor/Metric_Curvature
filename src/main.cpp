@@ -23,8 +23,9 @@ bool RunPipeline(const std::string &filename, const std::string &outpath) {
         return false;
     }
     try {
-        mesh.ProcessMetric(2, 2);
+        mesh.ProcessMetric(1, 1);
         mesh.SaveMetric(outpath);
+//        mesh.SaveCurvature(outpath);
         mesh.SaveMeshInfo(outpath);
     }
     catch (const std::exception &e) {
@@ -73,7 +74,8 @@ int main(int argc, char *argv[]) {
 //
 //    }
 
-    auto obj_path = "../../res/kitten_remesh.obj";
+//    auto obj_path = "../../res/kitten_remesh.obj";
+    auto obj_path = "/home/hongbo/Desktop/code/datasets/kitten_remesh.obj";
     auto output_path = "../../tmp";
     RunPipeline(obj_path, output_path);
 
