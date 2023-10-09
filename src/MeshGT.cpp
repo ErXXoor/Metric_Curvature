@@ -9,6 +9,7 @@
 #include<igl/adjacency_list.h>
 #include <ostream>
 #include <filesystem>
+#include "Base/Smoother.h"
 
 namespace IGLUtils {
     namespace fs = std::filesystem;
@@ -49,12 +50,6 @@ namespace IGLUtils {
     }
 
     void MeshGT::ProcessMetric(unsigned int smooth_ring, unsigned int smooth_iter) {
-        m_metric->ComposeMetric(m_n,
-                                m_min_pd,
-                                m_max_pd,
-                                m_min_pv,
-                                m_max_pv);
-
         std::vector<std::vector<int>> adj;
         igl::adjacency_list(*m_f, adj);
 
@@ -83,8 +78,17 @@ namespace IGLUtils {
             }
 
         }
-        m_metric->SmoothMetric(smooth_iter, ring_neighbor);
+        auto smt_n = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_n);
+        auto smt_max_pd = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_max_pd);
+        auto smt_min_pd = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_min_pd);
+        auto smt_max_pv = Smoother::SmoothScalar(smooth_iter, ring_neighbor, m_max_pv);
+        auto smt_min_pv = Smoother::SmoothScalar(smooth_iter, ring_neighbor, m_min_pv);
 
+        m_metric->ComposeMetric(smt_n,
+                                m_min_pd,
+                                m_max_pd,
+                                m_min_pv,
+                                m_max_pv);
     }
 
     void MeshGT::SaveCurvature(const std::string &filepath) {
@@ -152,21 +156,5 @@ namespace IGLUtils {
 
         viewer.launch();
     }
-
-    void MeshGT::ViewMetric() {
-        auto ell_filename = "../../res/ellipsoid_t.obj";
-        std::shared_ptr<Eigen::MatrixXd> ell_v = std::make_shared<Eigen::MatrixXd>();
-        std::shared_ptr<Eigen::MatrixXi> ell_f = std::make_shared<Eigen::MatrixXi>();
-        igl::read_triangle_mesh(ell_filename, *ell_v, *ell_f);
-        *ell_v *= 0.01;
-        for (auto i = 0; i < m_v->rows(); i++) {
-
-        }
-
-        igl::opengl::glfw::Viewer viewer;
-        viewer.data().set_mesh(*ell_v, *ell_f);
-        viewer.launch();
-    }
-
 
 }

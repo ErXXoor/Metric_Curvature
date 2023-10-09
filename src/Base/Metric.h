@@ -22,9 +22,6 @@ namespace IGLUtils {
                            std::shared_ptr<Eigen::VectorXd> m_min_pv,
                            std::shared_ptr<Eigen::VectorXd> m_max_pv);
 
-        void SmoothMetric(unsigned int iter,
-                          const std::vector<std::set<int>> &adjacency_list);
-
         void SaveMetric(const std::string &filepath);
 
     private:
