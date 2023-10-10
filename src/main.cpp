@@ -23,7 +23,7 @@ bool RunPipeline(const std::string &filename, const std::string &outpath) {
         return false;
     }
     try {
-        mesh.ProcessMetric(1, 1);
+        mesh.ProcessMetric(2, 2);
         mesh.SaveMetric(outpath);
 //        mesh.SaveCurvature(outpath);
         mesh.SaveMeshInfo(outpath);

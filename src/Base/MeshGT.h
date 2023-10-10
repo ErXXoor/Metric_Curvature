@@ -27,7 +27,7 @@ namespace IGLUtils {
 
         void SaveCurvature(const std::string &filepath);
 
-        void SaveMetric(const std::string &filepath);
+        void SaveMetric(const std::string &filepath,bool save_sr=true);
 
         void SaveMeshInfo(const std::string &filepath);
 

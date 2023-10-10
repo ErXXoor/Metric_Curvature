@@ -27,10 +27,13 @@ namespace IGLUtils {
             r.block(2, 0, 1, 3) = n;
 
             Eigen::Matrix3d s = Eigen::Matrix3d::Zero();
-            s(0, 0) = 1;
-            s(1, 1) = k_max/k_min;
+            s(0, 0) = k_max/k_min;
+            s(1, 1) = 1;
             s(2, 2) = 0.0;
-            auto tensor = r.transpose() * s * r;
+
+            m_s.emplace_back(s);
+            m_r.emplace_back(r);
+            auto tensor = s * r;
             m_metric.emplace_back(tensor);
         }
     }
@@ -43,6 +46,23 @@ namespace IGLUtils {
             out << i(2, 0) << "," << i(2, 1) << "," << i(2, 2) << std::endl;
         }
         out.close();
+    }
+
+    void Metric::SaveSR(const std::string& s_filepath, const std::string& r_filepath){
+        std::ofstream out(s_filepath);
+        for(auto &i:m_s){
+            out << i(0, 0) << "," << i(0, 1) << "," << i(0, 2) << ",";
+            out << i(1, 0) << "," << i(1, 1) << "," << i(1, 2) << ",";
+            out << i(2, 0) << "," << i(2, 1) << "," << i(2, 2) << std::endl;
+        }
+        out.close();
+
+        std::ofstream out2(r_filepath);
+        for(auto &i:m_r){
+            out2 << i(0, 0) << "," << i(0, 1) << "," << i(0, 2) << ",";
+            out2 << i(1, 0) << "," << i(1, 1) << "," << i(1, 2) << ",";
+            out2 << i(2, 0) << "," << i(2, 1) << "," << i(2, 2) << std::endl;
+        }
     }
 
 }

@@ -81,14 +81,28 @@ namespace IGLUtils {
         auto smt_n = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_n);
         auto smt_max_pd = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_max_pd);
         auto smt_min_pd = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_min_pd);
-        auto smt_max_pv = Smoother::SmoothScalar(smooth_iter, ring_neighbor, m_max_pv);
-        auto smt_min_pv = Smoother::SmoothScalar(smooth_iter, ring_neighbor, m_min_pv);
+
+        auto row_length = smt_max_pd->rowwise().norm();
+        std::cout<<"row_length"<<row_length<<std::endl;
+
+
+
+        Eigen::VectorXd tmp_max_pv = m_max_pv->array().abs();
+        tmp_max_pv = tmp_max_pv.cwiseMin(400.0).cwiseMax(1.0);
+        std::shared_ptr<Eigen::VectorXd> max_ptr = std::make_shared<Eigen::VectorXd>(tmp_max_pv);
+
+        Eigen::VectorXd tmp_min_pv = m_min_pv->array().abs();
+        tmp_min_pv = tmp_min_pv.cwiseMin(400.0).cwiseMax(1.0);
+        std::shared_ptr<Eigen::VectorXd> min_ptr = std::make_shared<Eigen::VectorXd>(tmp_min_pv);
+
+        auto smt_max_pv = Smoother::SmoothScalar(smooth_iter, ring_neighbor, max_ptr);
+        auto smt_min_pv = Smoother::SmoothScalar(smooth_iter, ring_neighbor, min_ptr);
 
         m_metric->ComposeMetric(smt_n,
-                                m_min_pd,
-                                m_max_pd,
-                                m_min_pv,
-                                m_max_pv);
+                                smt_min_pd,
+                                smt_max_pd,
+                                smt_min_pv,
+                                smt_max_pv);
     }
 
     void MeshGT::SaveCurvature(const std::string &filepath) {
@@ -109,10 +123,17 @@ namespace IGLUtils {
         out.close();
     }
 
-    void MeshGT::SaveMetric(const std::string &filepath) {
+    void MeshGT::SaveMetric(const std::string &filepath,bool save_sr) {
         fs::path path(filepath);
-        auto path_s = path / (m_filename + "_m.csv");
-        m_metric->SaveMetric(path_s.string());
+        auto path_m = path / (m_filename + "_m.csv");
+        m_metric->SaveMetric(path_m.string());
+
+        if(save_sr)
+        {
+            auto path_s = path/(m_filename+"_s.csv");
+            auto path_r = path/(m_filename+"_r.csv");
+            m_metric->SaveSR(path_s.string(),path_r.string());
+        }
     }
 
     void MeshGT::SaveMeshInfo(const std::string &filepath) {
