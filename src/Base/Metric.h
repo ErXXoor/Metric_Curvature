@@ -23,9 +23,12 @@ namespace IGLUtils {
                            std::shared_ptr<Eigen::VectorXd> m_max_pv);
 
         void SaveMetric(const std::string &filepath);
+        void SaveSR(const std::string &s_filepath, const std::string &r_filepath);
 
     private:
         std::vector<Eigen::Matrix3d> m_metric;
+        std::vector<Eigen::Matrix3d> m_s;
+        std::vector<Eigen::Matrix3d> m_r;
     };
 
 }

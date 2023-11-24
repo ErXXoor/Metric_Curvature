@@ -17,6 +17,7 @@ namespace IGLUtils{
                         nghb_tensor.emplace_back(result->row(id));
                     }
                     auto vec_smt = Smoother::linear_average(nghb_tensor);
+                    vec_smt.normalize();
                     vec_smt_list.emplace_back(vec_smt);
                 }
 
