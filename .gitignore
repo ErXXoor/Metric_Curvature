@@ -1,5 +1,6 @@
 tmp/
-cmake-build-debug/
+cmake-build-*/
 .idea/
 */.DS_Store
 .DS_Store
+res/

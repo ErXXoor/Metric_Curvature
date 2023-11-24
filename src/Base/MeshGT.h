@@ -19,6 +19,8 @@ namespace IGLUtils {
 
         bool LoadMesh(const std::string &filename);
 
+        bool NormalizeMesh();
+
         bool CalculateCurvature();
 
         void ProcessMetric(unsigned int smooth_ring, unsigned int smooth_iter);
@@ -30,6 +32,8 @@ namespace IGLUtils {
         void SaveMetric(const std::string &filepath,bool save_sr=true);
 
         void SaveMeshInfo(const std::string &filepath);
+
+        void SaveMesh(const std::string &filepath);
 
     private:
         std::string m_filename;
