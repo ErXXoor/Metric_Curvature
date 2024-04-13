@@ -6,19 +6,26 @@
 #include <igl/read_triangle_mesh.h>
 #include <igl/principal_curvature.h>
 #include <igl/opengl/glfw/Viewer.h>
-#include<igl/adjacency_list.h>
+#include <igl/adjacency_list.h>
 #include <ostream>
 #include <filesystem>
 #include "Base/Smoother.h"
+#include <igl/copyleft/comiso/nrosy.h>
+#include <igl/uniformly_sample_two_manifold.h>
 
 namespace IGLUtils {
-    namespace fs = std::filesystem;
+    namespace fs = std::__fs::filesystem;
 
     MeshGT::MeshGT() {
         m_v = std::make_shared<Eigen::MatrixXd>();
         m_f = std::make_shared<Eigen::MatrixXi>();
         m_n = std::make_shared<Eigen::MatrixXd>();
         m_metric = std::make_shared<Metric>();
+        m_min_pd = std::make_shared<Eigen::MatrixXd>();
+        m_max_pd = std::make_shared<Eigen::MatrixXd>();
+        m_max_pv = std::make_shared<Eigen::VectorXd>();
+        m_min_pv = std::make_shared<Eigen::VectorXd>();
+        tmp_pd = std::make_shared<Eigen::MatrixXd>();
     }
 
     bool MeshGT::LoadMesh(const std::string &filename) {
@@ -34,10 +41,6 @@ namespace IGLUtils {
     }
 
     bool MeshGT::CalculateCurvature() {
-        m_min_pd = std::make_shared<Eigen::MatrixXd>();
-        m_max_pd = std::make_shared<Eigen::MatrixXd>();
-        m_max_pv = std::make_shared<Eigen::VectorXd>();
-        m_min_pv = std::make_shared<Eigen::VectorXd>();
         try {
             igl::principal_curvature(*m_v, *m_f, *m_max_pd, *m_min_pd, *m_max_pv, *m_min_pv);
         }
@@ -78,14 +81,9 @@ namespace IGLUtils {
             }
 
         }
-        auto smt_n = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_n);
-        auto smt_max_pd = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_max_pd);
-        auto smt_min_pd = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_min_pd);
-
-        auto row_length = smt_max_pd->rowwise().norm();
-        std::cout<<"row_length"<<row_length<<std::endl;
-
-
+        smt_n = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_n);
+        smt_max_pd = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_max_pd);
+        smt_min_pd = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_min_pd);
 
         Eigen::VectorXd tmp_max_pv = m_max_pv->array().abs();
         tmp_max_pv = tmp_max_pv.cwiseMin(400.0).cwiseMax(1.0);
@@ -105,40 +103,48 @@ namespace IGLUtils {
                                 smt_max_pv);
     }
 
+    void MeshGT::SaveTmpPD(const std::string &filepath) {
+        std::ofstream out(filepath);
+        for (auto i = 0; i < tmp_pd->rows(); i++) {
+            out << (*tmp_pd)(i, 0) << "," << (*tmp_pd)(i, 1) << "," << (*tmp_pd)(i, 2) << std::endl;
+        }
+    }
+
     void MeshGT::SaveCurvature(const std::string &filepath) {
-        std::filesystem::path path(filepath);
+        fs::path path(filepath);
         path = path / (m_filename + "_cur.csv");
         std::ofstream out(path.string());
 
-        for (int i = 0; i < m_v->rows(); i++) {
-            auto max_pd = m_max_pd->row(i);
-            auto min_pd = m_min_pd->row(i);
-            auto normal = m_n->row(i);
-            out << m_max_pv->coeff(i) << ",";
-            out << max_pd(0) << "," << max_pd(1) << "," << max_pd(2) << ",";
-            out << m_min_pv->coeff(i) << ",";
-            out << min_pd(0) << "," << min_pd(1) << "," << min_pd(2) << ",";
-            out << normal(0) << "," << normal(1) << "," << normal(2) << std::endl;
+        //Header
+        out << "min_cur" << "," << "min_pd_x" << "," << "min_pd_y" << "," << "min_pd_z" << ",";
+        out << "max_cur" << "," << "max_pd_x" << "," << "max_pd_y" << "," << "max_pd_z" << ",";
+        out << "normal_x" << "," << "normal_y" << "," << "normal_z" << std::endl;
+        for (auto i = 0; i < m_min_pd->rows(); i++) {
+            out << (*m_min_pv)(i) << "," << (*m_min_pd)(i, 0) << "," << (*m_min_pd)(i, 1) << "," << (*m_min_pd)(i, 2)
+                << ",";
+            out << (*m_max_pv)(i) << "," << (*m_max_pd)(i, 0) << "," << (*m_max_pd)(i, 1) << "," << (*m_max_pd)(i, 2)
+                << ",";
+            out << (*m_n)(i, 0) << "," << (*m_n)(i, 1) << "," << (*m_n)(i, 2) << std::endl;
         }
+
         out.close();
     }
 
-    void MeshGT::SaveMetric(const std::string &filepath,bool save_sr) {
+    void MeshGT::SaveMetric(const std::string &filepath, bool save_sr) {
         fs::path path(filepath);
         auto path_m = path / (m_filename + "_m.csv");
         m_metric->SaveMetric(path_m.string());
 
-        if(save_sr)
-        {
-            auto path_s = path/(m_filename+"_s.csv");
-            auto path_r = path/(m_filename+"_r.csv");
-            m_metric->SaveSR(path_s.string(),path_r.string());
+        if (save_sr) {
+            auto path_s = path / (m_filename + "_s.csv");
+            auto path_r = path / (m_filename + "_r.csv");
+            m_metric->SaveSR(path_s.string(), path_r.string());
         }
     }
 
     void MeshGT::SaveMeshInfo(const std::string &filepath) {
         //Save vertex
-        std::filesystem::path path(filepath);
+        fs::path path(filepath);
         auto path_s = path / (m_filename + "_vert.csv");
         std::ofstream out_s(path_s.string());
         // vertex x,y,z
@@ -167,10 +173,10 @@ namespace IGLUtils {
 
         // Draw a red segment parallel to the maximal curvature direction
         const Eigen::RowVector3d red(0.8, 0.2, 0.2), blue(0.2, 0.2, 0.8);
-        viewer.data().add_edges(*m_v + *m_min_pd * avg, *m_v - *m_min_pd * avg, red);
+        viewer.data().add_edges(*m_v + *smt_min_pd * avg, *m_v, red);
 
         // Draw a blue segment parallel to the minimal curvature direction
-        viewer.data().add_edges(*m_v + *m_max_pd * avg, *m_v - *m_max_pd * avg, blue);
+        viewer.data().add_edges(*m_v + *smt_max_pd * avg, *m_v, blue);
 
         // Hide wireframe
         viewer.data().show_lines = false;

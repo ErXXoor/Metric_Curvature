@@ -21,15 +21,21 @@ namespace IGLUtils {
 
         bool CalculateCurvature();
 
+        void SampleVertices(unsigned int num);
+
         void ProcessMetric(unsigned int smooth_ring, unsigned int smooth_iter);
 
         void ViewCurvature();
 
         void SaveCurvature(const std::string &filepath);
 
-        void SaveMetric(const std::string &filepath,bool save_sr=true);
+        void SaveMetric(const std::string &filepath, bool save_sr = true);
+
+        void SaveTmpPD(const std::string &filepath);
 
         void SaveMeshInfo(const std::string &filepath);
+
+        friend class TriMesh;
 
     private:
         std::string m_filename;
@@ -41,6 +47,12 @@ namespace IGLUtils {
         std::shared_ptr<Eigen::VectorXd> m_max_pv;
         std::shared_ptr<Eigen::VectorXd> m_min_pv;
         std::shared_ptr<Metric> m_metric;
+
+        std::shared_ptr<Eigen::MatrixXd> smt_min_pd;
+        std::shared_ptr<Eigen::MatrixXd> smt_max_pd;
+        std::shared_ptr<Eigen::MatrixXd> smt_n;
+
+        std::shared_ptr<Eigen::MatrixXd> tmp_pd;
     };
 }
 #endif //METRIC_CURVATURE_MESHIO_H
