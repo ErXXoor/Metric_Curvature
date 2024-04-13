@@ -6,10 +6,10 @@
 #include <string>
 #include <fstream>
 #include <filesystem>
-#include <thread>
+#include "Base/TriMesh.h"
 #include <chrono>
 
-namespace fs = std::filesystem;
+namespace fs = std::__fs::filesystem;
 
 bool RunPipeline(const std::string &filename, const std::string &outpath) {
     auto file_idx = fs::path(filename).parent_path().filename().string();
@@ -26,13 +26,14 @@ bool RunPipeline(const std::string &filename, const std::string &outpath) {
         std::cout << "file_idx: " << file_idx << " " << "calculate curvature failed" << std::endl;
         return false;
     }
-
+    auto tmp_path = "/Users/lihongbo/Desktop/code/scripts/tmp/75118_pd.csv";
     try {
         mesh.ProcessMetric(0, 0);
-//        mesh.SaveMetric(outpath);
+//        mesh.ViewCurvature();
         mesh.SaveCurvature(outpath);
-        mesh.SaveMeshInfo(outpath);
-//        mesh.SaveMesh(outpath);
+        mesh.SaveTmpPD(tmp_path);
+//        mesh.SaveMeshInfo(outpath);
+
     }
     catch (const std::exception &e) {
         std::cout << "file_idx: " << file_idx << " " << e.what() << " " << "save failed" << std::endl;
@@ -82,9 +83,10 @@ int main(int argc, char *argv[]) {
 
     }
 
-//    auto obj_path = "/home/hongbo/Desktop/code/Metric_Curvature/res/111240_sf.obj";
-//    auto output_path = "../../tmp";
-//    RunPipeline(obj_path, output_path);
+    auto obj_path = "/Users/lihongbo/Desktop/code/scripts/tmp/75118_sf_norm.obj";
+    auto output_path = "../../tmp";
+    RunPipeline(obj_path, output_path);
+
 
     auto end = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start);
