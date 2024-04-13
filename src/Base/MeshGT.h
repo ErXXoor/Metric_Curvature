@@ -19,6 +19,8 @@ namespace IGLUtils {
 
         bool LoadMesh(const std::string &filename);
 
+        bool NormalizeMesh();
+
         bool CalculateCurvature();
 
         void SampleVertices(unsigned int num);
@@ -35,7 +37,10 @@ namespace IGLUtils {
 
         void SaveMeshInfo(const std::string &filepath);
 
+
         friend class TriMesh;
+
+        void SaveMesh(const std::string &filepath);
 
     private:
         std::string m_filename;

@@ -37,11 +37,11 @@ namespace IGLUtils {
             Eigen::Matrix3d s = Eigen::Matrix3d::Zero();
             s(0, 0) = 1;
             s(1, 1) = k_max;
-            s(2, 2) = 0.0;
+            s(2, 2) = 1.0;
 
             m_s.emplace_back(s);
             m_r.emplace_back(r);
-            auto tensor = s * r;
+            auto tensor =  s * r;
             m_metric.emplace_back(tensor);
         }
     }

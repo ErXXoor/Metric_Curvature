@@ -7,6 +7,7 @@
 #include <igl/principal_curvature.h>
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/adjacency_list.h>
+
 #include <ostream>
 #include <filesystem>
 #include "Base/Smoother.h"
@@ -39,6 +40,22 @@ namespace IGLUtils {
 
         return success;
     }
+
+    bool MeshGT::NormalizeMesh() {
+        Eigen::RowVector3d min_corner, max_corner;
+        min_corner = m_v->colwise().minCoeff();
+        max_corner = m_v->colwise().maxCoeff();
+        auto diag_size = (max_corner - min_corner).norm();
+        if(diag_size>1.2||diag_size<0.8)
+        {
+            auto mid_point = (max_corner + min_corner) / 2;
+            auto scale = 1.0 / diag_size;
+            m_v->rowwise() -= mid_point;
+            (*m_v) *= scale;
+        }
+        return true;
+    }
+
 
     bool MeshGT::CalculateCurvature() {
         try {
@@ -81,16 +98,17 @@ namespace IGLUtils {
             }
 
         }
+
         smt_n = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_n);
         smt_max_pd = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_max_pd);
         smt_min_pd = Smoother::SmoothVec(smooth_iter, ring_neighbor, m_min_pd);
 
         Eigen::VectorXd tmp_max_pv = m_max_pv->array().abs();
-        tmp_max_pv = tmp_max_pv.cwiseMin(400.0).cwiseMax(1.0);
+        tmp_max_pv = tmp_max_pv.cwiseMin(25.0).cwiseMax(1.0);
         std::shared_ptr<Eigen::VectorXd> max_ptr = std::make_shared<Eigen::VectorXd>(tmp_max_pv);
 
         Eigen::VectorXd tmp_min_pv = m_min_pv->array().abs();
-        tmp_min_pv = tmp_min_pv.cwiseMin(400.0).cwiseMax(1.0);
+        tmp_min_pv = tmp_min_pv.cwiseMin(25.0).cwiseMax(1.0);
         std::shared_ptr<Eigen::VectorXd> min_ptr = std::make_shared<Eigen::VectorXd>(tmp_min_pv);
 
         auto smt_max_pv = Smoother::SmoothScalar(smooth_iter, ring_neighbor, max_ptr);
@@ -125,6 +143,7 @@ namespace IGLUtils {
             out << (*m_max_pv)(i) << "," << (*m_max_pd)(i, 0) << "," << (*m_max_pd)(i, 1) << "," << (*m_max_pd)(i, 2)
                 << ",";
             out << (*m_n)(i, 0) << "," << (*m_n)(i, 1) << "," << (*m_n)(i, 2) << std::endl;
+
         }
 
         out.close();
@@ -182,6 +201,12 @@ namespace IGLUtils {
         viewer.data().show_lines = false;
 
         viewer.launch();
+    }
+
+    void MeshGT::SaveMesh(const std::string &filepath) {
+        std::filesystem::path path(filepath);
+        auto path_s = path / (m_filename + "_norm.obj");
+        igl::writeOBJ(path_s.string(), *m_v, *m_f);
     }
 
 }
